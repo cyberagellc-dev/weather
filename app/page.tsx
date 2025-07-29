@@ -21,6 +21,7 @@ import {
   ToggleRight,
   Clock,
   Umbrella,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -219,6 +220,12 @@ export default function WeatherApp() {
     }
   }
 
+  const clearData = () => {
+    setWeatherData(null)
+    setSearchQuery("")
+    setError("")
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 p-4">
       <div className="max-w-6xl mx-auto">
@@ -249,6 +256,18 @@ export default function WeatherApp() {
                     <Search className="h-4 w-4" />
                   )}
                 </Button>
+                {(weatherData || error) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={clearData}
+                    disabled={isLoading}
+                    className="px-3 bg-transparent"
+                    title="Clear results"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </form>
 
               {/* Units Toggle */}
