@@ -3,6 +3,101 @@ import { type NextRequest, NextResponse } from "next/server"
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY
 const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
+// OpenWeatherMap API response types
+interface WeatherCondition {
+  id: number
+  main: string
+  description: string
+  icon: string
+}
+
+interface MainWeatherData {
+  temp: number
+  feels_like: number
+  temp_min: number
+  temp_max: number
+  pressure: number
+  humidity: number
+}
+
+interface WindData {
+  speed: number
+  deg: number
+  gust?: number
+}
+
+interface CloudData {
+  all: number
+}
+
+interface SysData {
+  type: number
+  id: number
+  country: string
+  sunrise: number
+  sunset: number
+}
+
+interface CoordData {
+  lon: number
+  lat: number
+}
+
+interface CurrentWeatherResponse {
+  coord: CoordData
+  weather: WeatherCondition[]
+  base: string
+  main: MainWeatherData
+  visibility: number
+  wind: WindData
+  clouds: CloudData
+  dt: number
+  sys: SysData
+  timezone: number
+  id: number
+  name: string
+  cod: number
+}
+
+interface ForecastItem {
+  dt: number
+  main: MainWeatherData
+  weather: WeatherCondition[]
+  clouds: CloudData
+  wind: WindData
+  visibility: number
+  pop: number
+  sys: {
+    pod: string
+  }
+  dt_txt: string
+}
+
+interface ForecastResponse {
+  cod: string
+  message: number
+  cnt: number
+  list: ForecastItem[]
+  city: {
+    id: number
+    name: string
+    coord: CoordData
+    country: string
+    population: number
+    timezone: number
+    sunrise: number
+    sunset: number
+  }
+}
+
+interface UVIndexResponse {
+  lat: number
+  lon: number
+  date_iso: string
+  date: number
+  value: number
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const city = searchParams.get("city")
@@ -58,19 +153,29 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const weatherData = await weatherResponse.json()
+    const weatherData: CurrentWeatherResponse = await weatherResponse.json()
 
     // Get 24-hour forecast data
     const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${OPENWEATHER_API_KEY}&units=${units}`
     console.log("Fetching forecast from:", forecastUrl.replace(OPENWEATHER_API_KEY, "[API_KEY]"))
 
-    let hourlyForecast = []
+    let hourlyForecast: Array<{
+      time: number
+      temperature: number
+      condition: string
+      description: string
+      iconCode: string
+      humidity: number
+      windSpeed: number
+      precipitation: number
+    }> = []
+
     try {
       const forecastResponse = await fetch(forecastUrl)
       if (forecastResponse.ok) {
-        const forecastData = await forecastResponse.json()
+        const forecastData: ForecastResponse = await forecastResponse.json()
         // Get next 8 entries (24 hours, 3-hour intervals)
-        hourlyForecast = forecastData.list.slice(0, 8).map((item: any) => ({
+        hourlyForecast = forecastData.list.slice(0, 8).map((item: ForecastItem) => ({
           time: item.dt,
           temperature: Math.round(item.main.temp),
           condition: item.weather[0].main,
@@ -95,7 +200,7 @@ export async function GET(request: NextRequest) {
       )
 
       if (uvResponse.ok) {
-        const uvData = await uvResponse.json()
+        const uvData: UVIndexResponse = await uvResponse.json()
         uvIndex = Math.round(uvData.value || 0)
       }
     } catch (uvError) {
